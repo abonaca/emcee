@@ -164,19 +164,20 @@ class Sampler(object):
         """
         if fout:
 		f=open(fout,'w')
-		f.write("#%10s\t%10s\n#\n"%("walker", "parameters"))
+		f.write("#%10s\t%10s\t%10s\n#\n"%("walker", "lnprob", "parameters"))
 		f.close()
 		f=open(fout,'a')
+	
         for results in self.sample(pos0, lnprob0, rstate0, iterations=N,
                                    **kwargs):
 		if fout:
 			position = results[0]
+			prob = results[1]
 			for k in range(position.shape[0]):
-				f.write("%10d\t"%k)
+				f.write("%10d\t%10g\t"%(k,prob[k]))
 				for i in range(position.shape[1]):
 					f.write("%10g\t"%(position[k][i]))
 				f.write("\n")
-				pass
 			f.flush()
 		pass
 	if fout:
