@@ -171,14 +171,12 @@ class Sampler(object):
                                    **kwargs):
 		if fout:
 			position = results[0]
-			#n=position.shape[1]
 			for k in range(position.shape[0]):
 				f.write("%10d\t"%k)
 				for i in range(position.shape[1]):
 					f.write("%10g\t"%(position[k][i]))
 				f.write("\n")
 				pass
-				#f.write("{0:4d} {1:s}\n".format(k, " ".join(position[k]))
 			f.flush()
 		pass
 	if fout:
