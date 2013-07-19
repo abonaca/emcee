@@ -74,7 +74,7 @@ class PTSampler(em.Sampler):
 
     """
     def __init__(self, ntemps, nwalkers, dim, logl, logp, threads=1,
-                 pool=None, betas=None, a=2.0):
+                 pool=None, betas=None, a=2.0, args=[]):
         self.logl = logl
         self.logp = logp
         self.a = a
@@ -82,6 +82,12 @@ class PTSampler(em.Sampler):
         self.ntemps = ntemps
         self.nwalkers = nwalkers
         self.dim = dim
+
+        super(PTSampler, self).__init__(dim, logl, args=args)
+
+        # Do a little bit of _magic_ to make the likelihood call with
+        # ``args`` pickleable.
+        self.logl = _function_wrapper(self.logl, self.args)
 
         assert self.nwalkers % 2 == 0, \
             "The number of walkers must be even."
@@ -449,12 +455,31 @@ class PTSampler(em.Sampler):
         return self._chain
 
     @property
+    def flatchain(self):
+        """
+        A shortcut for accessing chain flattened along the zeroth (walker)
+        axis.
+
+        """
+        s = self.chain.shape
+        return self.chain.reshape(s[0] * s[1] * s[2], s[3])
+
+    @property
     def lnprobability(self):
         """
         Matrix of lnprobability values; shape ``(Ntemps, Nwalkers, Nsteps)``.
 
         """
         return self._lnprob
+
+    @property
+    def flatlnprobability(self):
+        """
+        A shortcut to return the equivalent of ``lnprobability`` but aligned
+        to ``flatchain`` rather than ``chain``.
+
+        """
+        return self._lnprob.flatten()
 
     @property
     def lnlikelihood(self):
@@ -499,3 +524,27 @@ class PTSampler(em.Sampler):
                     acors[i, j] = acor.acor(self._chain[i, :, :, j])[0]
 
             return acors
+    
+class _function_wrapper(object):
+    """
+    This is a hack to make the likelihood function pickleable when ``args``
+    are also included.
+
+    """
+    def __init__(self, f, args):
+        self.f = f
+        self.args = args
+
+    def __call__(self, x):
+        try:
+            return self.f(x, *self.args)
+        except:
+            import traceback
+            print("emcee: Exception while calling your likelihood function:")
+            print("  params:", x)
+            print("  args:", self.args)
+            print("  exception:")
+            traceback.print_exc()
+            raise
+    
+    
