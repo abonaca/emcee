@@ -525,6 +525,55 @@ class PTSampler(em.Sampler):
 
             return acors
     
+    def run_mcmc(self, pos0, N, rstate0=None, lnprob0=None, fout=None, **kwargs):
+        """
+        Iterate :func:`sample` for ``N`` iterations and return the result.
+
+        :param p0:
+            The initial position vector.
+
+        :param N:
+            The number of steps to run.
+
+        :param lnprob0: (optional)
+            The log posterior probability at position ``p0``. If ``lnprob``
+            is not provided, the initial value is calculated.
+
+        :param rstate0: (optional)
+            The state of the random number generator. See the
+            :func:`random_state` property for details.
+
+	:param fout: (optional)
+		Path to output file. If present, print position of each walker
+		at each time step to the output file.
+
+        :param kwargs: (optional)
+            Other parameters that are directly passed to :func:`sample`.
+
+        """
+        if fout:
+		f=open(fout,'w')
+		f.write("#%10s\t%10s\t%10s\t%10s\n#\n"%("temp","walker", "lnprob", "parameters"))
+		f.close()
+		f=open(fout,'a')
+	
+        for results in self.sample(pos0, lnprob0, rstate0, iterations=N,
+                                   **kwargs):
+		if fout:
+			position = results[0]
+			prob = results[1]
+			for i in range(position.shape[0]):
+				for j in range(position.shape[1]):
+					f.write("%10d\t%10d\t%10g\t"%(i,j,prob[i][j]))
+					for k in range(position.shape[2]):
+						f.write("%10g\t"%(position[i][j][k]))
+					f.write("\n")
+			f.flush()
+		pass
+	if fout:
+		f.close()
+        return results
+    
 class _function_wrapper(object):
     """
     This is a hack to make the likelihood function pickleable when ``args``
